@@ -1,8 +1,9 @@
 import { ImageContainer, ProductContainer, ProductDetails } from "../../styles/pages/product"
-import { GetStaticProps } from 'next';
+import { GetStaticPaths, GetStaticProps } from 'next';
 import { stripe } from "../../lib/stripe";
 import Stripe from "stripe";
 import Image from "next/future/image";
+import { useRouter } from "next/router";
 
 interface ProductProps {
   product: {
@@ -11,10 +12,21 @@ interface ProductProps {
     imageUrl: string
     price: string
     description: string
+    defaultPriceId: string
   }
 }
 
 export default function Product({ product }: ProductProps) {
+
+  function handleBuyProduct() {
+    console.log(product.defaultPriceId)
+  }
+
+  const { isFallback } = useRouter()
+
+  if (isFallback) {
+    return <p>Loading...</p>
+  }
 
   return (
     <ProductContainer>
@@ -27,12 +39,22 @@ export default function Product({ product }: ProductProps) {
         <span>{product.price}</span>
         <p>{product.description}</p>
 
-        <button>
+        <button onClick={handleBuyProduct}>
           Comprar agora
         </button>
       </ProductDetails>
     </ProductContainer>
   )
+}
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: [
+      { params: { id: 'prod_MOzyAT9BQSR5WS' } },
+      { params: { id: 'prod_MOzveEwStuq5zC' } }
+    ],
+    fallback: true,
+  }
 }
 
 export const getStaticProps: GetStaticProps<any, { id: string }> = async ({ params }) => {
@@ -54,7 +76,8 @@ export const getStaticProps: GetStaticProps<any, { id: string }> = async ({ para
           style: 'currency',
           currency: 'BRL'
         }).format(price.unit_amount / 100),
-        description: product.description
+        description: product.description,
+        defaultPriceId: price.id
       }
     },
     revalidate: 60 * 60 * 1, // 1hr
